@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Download, X, FileText } from 'lucide-react';
 import { exportToExcel } from '@/lib/exportToExcel';
 import { exportToSheets } from '@/lib/exportToSheets';
@@ -40,6 +40,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   personnel,
   formData
 }) => {
+  const [isExportingSheets, setIsExportingSheets] = useState(false);
+
   if (!isOpen) return null;
 
   const generateDAForm1306Text = () => {
@@ -144,6 +146,19 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  const handleSheetsExport = async () => {
+    setIsExportingSheets(true);
+    try {
+      await exportToSheets(personnel, formData);
+      alert('Exported to Google Sheets successfully.');
+    } catch (error) {
+      console.error('Export to Sheets failed:', error);
+      alert('Export to Google Sheets failed.');
+    } finally {
+      setIsExportingSheets(false);
+    }
+  };
+
   const previewContent = generateDAForm1306Text();
 
   return (
@@ -167,13 +182,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             {previewContent}
           </pre>
         </div>
-<button
-  onClick={() => exportToSheets(personnel, formData)}
-  className="px-4 py-2 bg-sky-700 text-white rounded-md hover:bg-sky-800 flex items-center gap-2"
->
-  <Download className="w-4 h-4" />
-  Export to Sheets
-</button>
 
         <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
           <button
@@ -188,6 +196,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           >
             <Download className="w-4 h-4" />
             Export Excel
+          </button>
+          <button
+            onClick={handleSheetsExport}
+            disabled={isExportingSheets}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
+          >
+            <Download className="w-4 h-4" />
+            {isExportingSheets ? 'Exporting...' : 'Export to Sheets'}
           </button>
           <button
             onClick={handleTextPreview}
