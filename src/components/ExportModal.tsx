@@ -1,6 +1,7 @@
 import React from 'react';
 import { Download, X, FileText } from 'lucide-react';
 import { exportToExcel } from '@/lib/exportToExcel';
+import { exportToSheets } from '@/lib/exportToSheets';
 
 interface Personnel {
   id: string;
