@@ -142,7 +142,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           </pre>
         </div>
 
-        <div className="flex justify-between items-center gap-3 p-6 border-t bg-gray-50">
+        <div className="flex justify-between items-center gap-3 p-6 border-t bg-gray-50 print:hidden">
           <div className="flex gap-3">
             <button
               onClick={handlePrintPreview}
