@@ -1,5 +1,4 @@
-import { saveAs } from 'file-saver';
-import ExcelJS from 'exceljs';
+import { utils, writeFile } from 'xlsx';
 
 interface Personnel {
   id: string;
@@ -28,61 +27,32 @@ interface FormData {
 }
 
 export async function exportToExcel(personnel: Personnel[], formData: FormData) {
-  try {
-    const templatePath = '/OTD_Manifest_Clean_Template.xlsx';
-    const response = await fetch(templatePath);
-    const arrayBuffer = await response.arrayBuffer();
+  const wb = utils.book_new();
 
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(arrayBuffer);
+  // Group by chalk and door
+  const grouped = personnel.reduce((acc, person) => {
+    const chalk = person.chalk || 'TBD';
+    const door = person.isNonExiting ? 'Non-Exiting' : person.door || 'Left';
+    const key = `${chalk}-${door}`;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(person);
+    return acc;
+  }, {} as Record<string, Personnel[]>);
 
-    const exitingPersonnel = personnel.filter(p => !p.isNonExiting);
-    const nonExitingPersonnel = personnel.filter(p => p.isNonExiting);
-
-    // Group by Chalk and Door
-    const groups: Record<string, Personnel[]> = {};
-    exitingPersonnel.forEach(person => {
-      const chalk = person.chalk || 'TBD';
-      const door = person.door || 'Left';
-      const tabName = `${chalk}-${door.toUpperCase()}`;
-
-      if (!groups[tabName]) groups[tabName] = [];
-      groups[tabName].push(person);
-    });
-
-    for (const [tabName, group] of Object.entries(groups)) {
-      let sheet = workbook.getWorksheet(tabName);
-      if (!sheet) {
-        const templateSheet = workbook.getWorksheet('Clean_Template');
-        if (!templateSheet) continue;
-        sheet = workbook.addWorksheet(tabName);
-        sheet.model = JSON.parse(JSON.stringify(templateSheet.model));
-      }
-
-      sheet.getCell('B1').value = formData.date;
-      sheet.getCell('B2').value = formData.dropZone;
-      sheet.getCell('B3').value = formData.aircraftType;
-      sheet.getCell('B4').value = formData.chuteType;
-      if (formData.partnerJump === 'yes') {
-        sheet.getCell('B5').value = formData.partnerNation;
-      }
-
-      group.forEach((person, i) => {
-        const row = sheet.getRow(7 + i);
-        row.getCell(1).value = i + 1;
-        row.getCell(2).value = `${person.lastName}, ${person.firstName} ${person.middleInitial}`;
-        row.getCell(3).value = person.grade;
-        row.getCell(4).value = person.organization;
-        row.getCell(5).value = person.jumpType;
-        row.commit();
-      });
-    }
-
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    saveAs(blob, `DA-Form-1306-${formData.date || 'manifest'}.xlsx`);
-  } catch (err) {
-    console.error('Error exporting Excel manifest:', err);
-    alert('Failed to export Excel file. Check console for details.');
+  for (const [sheetName, group] of Object.entries(grouped)) {
+    const sheetData = [
+      ['#', 'Name', 'Grade', 'Organization', 'Jump Type'],
+      ...group.map((person, idx) => {
+        const name = `${person.lastName}, ${person.firstName} ${person.middleInitial}`;
+        const jumpType = person.jumpmasterType || person.nonJumperType || person.jumpType;
+        const number = person.isNonExiting ? '////' : idx + 1;
+        return [number, name, person.grade, person.organization, jumpType];
+      })
+    ];
+    const ws = utils.aoa_to_sheet(sheetData);
+    utils.book_append_sheet(wb, ws, sheetName.slice(0, 31)); // Excel sheet name max length is 31
   }
+
+  const fileName = `Manifest_${formData.date.replace(/\s+/g, '_')}.xlsx`;
+  writeFile(wb, fileName);
 }
