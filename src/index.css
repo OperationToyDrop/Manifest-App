@@ -2,4 +2,3 @@
 @tailwind components;
 @tailwind utilities;
 
-<button className="print:hidden">Export</button>
