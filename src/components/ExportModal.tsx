@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Download, X, FileText } from 'lucide-react';
+import { Download, X, FileText, Printer, Save } from 'lucide-react';
 import { exportToExcel } from '@/lib/exportToExcel';
 import { exportToSheets } from '@/lib/exportToSheets';
 import { exportDA1306Excel } from '@/lib/exportDA1306Excel';
+import { exportToPDFTemplate } from '@/lib/exportToPDFTemplate';
 
 interface Personnel {
   id: string;
@@ -92,6 +93,33 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     }
   };
 
+  const handlePDFExport = () => {
+    try {
+      exportToPDFTemplate(personnel, formData);
+    } catch (error) {
+      console.error('Export to PDF failed:', error);
+      alert('Export to PDF failed.');
+    }
+  };
+
+  const handlePrintPreview = () => {
+    window.print();
+  };
+
+  const handleSavePreview = () => {
+    const content = document.querySelector(".preview-section")?.innerHTML;
+    if (!content) return;
+    const blob = new Blob([content], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `DA1306_Preview_${formData.date || 'manifest'}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
@@ -108,41 +136,66 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto max-h-[60vh]">
+        <div className="p-6 overflow-y-auto max-h-[60vh] preview-section">
           <pre className="text-sm text-gray-800 whitespace-pre-wrap font-mono bg-gray-50 p-4 rounded-md">
             {personnel.map((p, i) => `${i + 1}. ${p.lastName}, ${p.firstName} ${p.middleInitial} - ${p.grade} - ${p.organization} - ${p.jumpType}`).join('\n')}
           </pre>
         </div>
 
-        <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-600 hover:text-gray-800"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleDA1306ExcelExport}
-            className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Export DA1306 Excel
-          </button>
-          <button
-            onClick={handleSheetsExport}
-            disabled={isExportingSheets}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
-          >
-            <Download className="w-4 h-4" />
-            {isExportingSheets ? 'Exporting...' : 'Export to Sheets'}
-          </button>
-          <button
-            onClick={handleTextPreview}
-            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Download Text Version
-          </button>
+        <div className="flex justify-between items-center gap-3 p-6 border-t bg-gray-50">
+          <div className="flex gap-3">
+            <button
+              onClick={handlePrintPreview}
+              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 flex items-center gap-2"
+            >
+              <Printer className="w-4 h-4" />
+              Print
+            </button>
+            <button
+              onClick={handleSavePreview}
+              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 flex items-center gap-2"
+            >
+              <Save className="w-4 h-4" />
+              Save Preview
+            </button>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-gray-600 hover:text-gray-800"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDA1306ExcelExport}
+              className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Export DA1306 Excel
+            </button>
+            <button
+              onClick={handleSheetsExport}
+              disabled={isExportingSheets}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
+            >
+              <Download className="w-4 h-4" />
+              {isExportingSheets ? 'Exporting...' : 'Export to Sheets'}
+            </button>
+            <button
+              onClick={handlePDFExport}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Export to PDF
+            </button>
+            <button
+              onClick={handleTextPreview}
+              className="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900 flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Download Text Version
+            </button>
+          </div>
         </div>
       </div>
     </div>
