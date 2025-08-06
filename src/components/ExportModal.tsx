@@ -158,7 +158,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             </button>
             <button
               onClick={handleDA1306ExcelExport}
-              className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 flex items-center gap-2"
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2"
             >
               <Download className="w-4 h-4" />
               Export DA1306 Excel
@@ -176,7 +176,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               className="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900 flex items-center gap-2"
             >
               <Download className="w-4 h-4" />
-              Download Text Version
+              Download Text
             </button>
           </div>
         </div>
