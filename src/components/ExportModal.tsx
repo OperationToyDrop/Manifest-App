@@ -3,7 +3,6 @@ import { Download, X, FileText, Printer, Save } from 'lucide-react';
 import { exportToExcel } from '@/lib/exportToExcel';
 import { exportToSheets } from '@/lib/exportToSheets';
 import { exportDA1306Excel } from '@/lib/exportDA1306Excel';
-import { exportToPDFTemplate } from '@/lib/exportToPDFTemplate';
 
 interface Personnel {
   id: string;
@@ -93,15 +92,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     }
   };
 
-  const handlePDFExport = () => {
-    try {
-      exportToPDFTemplate(personnel, formData);
-    } catch (error) {
-      console.error('Export to PDF failed:', error);
-      alert('Export to PDF failed.');
-    }
-  };
-
   const handlePrintPreview = () => {
     window.print();
   };
@@ -180,13 +170,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             >
               <Download className="w-4 h-4" />
               {isExportingSheets ? 'Exporting...' : 'Export to Sheets'}
-            </button>
-            <button
-              onClick={handlePDFExport}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Export to PDF
             </button>
             <button
               onClick={handleTextPreview}
