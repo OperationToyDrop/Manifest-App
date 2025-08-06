@@ -40,10 +40,7 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  // Show all personnel in PDF preview (including SAFETY, etc.)
   const allPersonnel = personnel;
-
-  // Group by pass and door for mission data
   const firstPerson = allPersonnel[0];
   const missionData = firstPerson ? {
     chalk: firstPerson.chalk || 'TBD',
@@ -78,18 +75,14 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto max-h-[85vh]">
-          {/* PDF Form Preview */}
+        <div className="p-6 overflow-y-auto max-h-[85vh] pdf-preview-content">
           <div className="bg-white border-2 border-gray-300 p-8 font-mono text-sm leading-relaxed max-w-4xl mx-auto">
-            {/* Header */}
             <div className="text-center mb-8">
               <div className="text-lg font-bold">DA FORM 1306</div>
               <div className="text-base font-semibold">STATEMENT OF JUMP AND LOADING MANIFEST</div>
             </div>
 
-            {/* Main content area with personnel table */}
             <div className="mb-8">
-              {/* Column Headers */}
               <div className="grid grid-cols-5 gap-2 border-b-2 border-black pb-2 mb-2 font-bold text-center">
                 <div>LINE NO</div>
                 <div>LAST NAME--FIRST NAME--MIDDLE INITIAL</div>
@@ -98,7 +91,6 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
                 <div>TYPE OF JUMP</div>
               </div>
 
-              {/* Mission Data Row */}
               {missionText && (
                 <div className="grid grid-cols-5 gap-2 py-1 border-b border-gray-300">
                   <div className="text-center"></div>
@@ -109,8 +101,6 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
                 </div>
               )}
 
-              {/* Personnel Rows */}
-              {/* Exiting Personnel */}
               {allPersonnel.filter(p => !p.isNonExiting).map((person, index) => (
                 <div key={person.id} className="grid grid-cols-5 gap-2 py-1 border-b border-gray-200">
                   <div className="text-center">{index + 1}</div>
@@ -121,7 +111,6 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
                 </div>
               ))}
 
-              {/* Separation between exiting and non-exiting personnel */}
               {allPersonnel.filter(p => p.isNonExiting).length > 0 && (
                 <>
                   <div className="grid grid-cols-5 gap-2 py-1 border-b border-gray-200">
@@ -141,7 +130,6 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
                 </>
               )}
 
-              {/* Non-Exiting Personnel */}
               {allPersonnel.filter(p => p.isNonExiting).map((person) => (
                 <div key={person.id} className="grid grid-cols-5 gap-2 py-1 border-b border-gray-200">
                   <div className="text-center">////</div>
@@ -152,7 +140,6 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
                 </div>
               ))}
 
-              {/* Empty rows to show form structure */}
               {Array.from({ length: Math.max(0, 15 - allPersonnel.length) }).map((_, index) => (
                 <div key={`empty-${index}`} className="grid grid-cols-5 gap-2 py-1 border-b border-gray-200">
                   <div className="text-center text-gray-300">___</div>
@@ -164,15 +151,13 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
               ))}
             </div>
 
-            {/* Bottom section with form fields */}
             <div className="space-y-4 text-sm">
               <div className="flex items-center gap-2">
                 <span>THE PERSONNEL LISTED HEREON MADE A PARACHUTE JUMP FROM</span>
                 <span className="border-b border-black px-2 min-w-[200px] text-center font-semibold">
                   {formData.aircraftType && formData.chuteType ? 
                     `${formData.aircraftType}, ${formData.chuteType}` : 
-                    '________________________________'
-                  }
+                    '________________________________'}
                 </span>
               </div>
 
@@ -203,7 +188,6 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
             </div>
           </div>
 
-          {/* Preview Notes */}
           <div className="mt-6 p-4 bg-blue-50 rounded-lg">
             <h3 className="font-semibold text-blue-800 mb-2">Preview Notes:</h3>
             <ul className="text-sm text-blue-700 space-y-1">
@@ -217,7 +201,33 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 p-4 border-t bg-gray-50">
+        <div className="flex justify-between items-center gap-3 p-4 border-t bg-gray-50 print:hidden">
+          <div className="flex gap-3">
+            <button
+              onClick={() => window.print()}
+              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 flex items-center gap-2"
+            >
+              Print
+            </button>
+            <button
+              onClick={() => {
+                const content = document.querySelector(".pdf-preview-content")?.innerHTML;
+                if (!content) return;
+                const blob = new Blob([content], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `DA1306_Preview_${new Date().toISOString().split('T')[0]}.html`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              }}
+              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 flex items-center gap-2"
+            >
+              Save Preview
+            </button>
+          </div>
           <button
             onClick={onClose}
             className="px-4 py-2 text-gray-600 hover:text-gray-800"
