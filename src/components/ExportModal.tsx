@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Download, X, FileText } from 'lucide-react';
 import { exportToExcel } from '@/lib/exportToExcel';
 import { exportToSheets } from '@/lib/exportToSheets';
+import { exportDA1306Excel } from '@/lib/exportDA1306Excel';
 
 interface Personnel {
   id: string;
@@ -44,97 +45,20 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
   if (!isOpen) return null;
 
-  const generateDAForm1306Text = () => {
-    const groupedPersonnel = personnel.reduce((groups, person) => {
-      const passKey = person.pass || 1;
-      if (!groups[passKey]) groups[passKey] = [];
-      groups[passKey].push(person);
-      return groups;
-    }, {} as Record<number, Personnel[]>);
-
-    const exitingPersonnel = personnel.filter(p => !p.isNonExiting);
-    const nonExitingPersonnel = personnel.filter(p => p.isNonExiting);
-
-    const exitingGroupedByPass = exitingPersonnel.reduce((groups, person) => {
-      const passKey = person.pass || 1;
-      if (!groups[passKey]) groups[passKey] = [];
-      groups[passKey].push(person);
-      return groups;
-    }, {} as Record<number, Personnel[]>);
-
-    const exitingGroupedByPassAndDoor = Object.keys(exitingGroupedByPass).reduce((groups, passKey) => {
-      const passNumber = Number(passKey);
-      const passPersonnel = exitingGroupedByPass[passNumber];
-      const doorGroups = passPersonnel.reduce((doorGroup, person) => {
-        const doorKey = person.door || 'Left';
-        if (!doorGroup[doorKey]) doorGroup[doorKey] = [];
-        doorGroup[doorKey].push(person);
-        return doorGroup;
-      }, {} as Record<string, Personnel[]>);
-      groups[passNumber] = doorGroups;
-      return groups;
-    }, {} as Record<number, Record<string, Personnel[]>>);
-
-    const sortedPasses = Object.keys(exitingGroupedByPass).map(Number).sort((a, b) => a - b);
-
-    let content = `DA FORM 1306\nSTATEMENT OF JUMP AND LOADING MANIFEST\n\n`;
-    content += `Date: ${formData.date}\n`;
-    content += `Drop Zone: ${formData.dropZone}\n`;
-    content += `Aircraft Type: ${formData.aircraftType}\n`;
-    content += `Parachute Type: ${formData.chuteType}\n\n`;
-
-    sortedPasses.forEach(passNumber => {
-      const doorGroups = exitingGroupedByPassAndDoor[passNumber];
-      Object.keys(doorGroups).sort().forEach(doorType => {
-        const doorPersonnel = doorGroups[doorType];
-        const firstPerson = doorPersonnel[0];
-        const exitType = doorType === 'Ramp' ? 'Ramp' : `${doorType} Door`;
-        const partnerInfo = formData.partnerJump === 'yes' && formData.partnerNation ? `, ${formData.partnerNation}` : '';
-        content += `\nChalk ${firstPerson.chalk || 'TBD'}, Pass ${passNumber}, ${exitType}, ${formData.chuteType}${partnerInfo}\n`;
-        content += `${'='.repeat(80)}\n`;
-        content += `#   Name                           Grade    Organization           Jump Type\n`;
-        content += `${'-'.repeat(80)}\n`;
-        doorPersonnel.forEach((person, index) => {
-          const number = `${index + 1}.`.padEnd(4);
-          const name = `${person.lastName}, ${person.firstName} ${person.middleInitial}`.padEnd(30);
-          const grade = person.grade.padEnd(8);
-          const org = person.organization.padEnd(22);
-          const jumpType = person.jumpType;
-          content += `${number}${name} ${grade} ${org} ${jumpType}\n`;
-        });
-      });
-    });
-
-    if (nonExitingPersonnel.length > 0) {
-      const nonExitingByChalk = nonExitingPersonnel.reduce((groups, person) => {
-        const chalkKey = person.chalk || 'TBD';
-        if (!groups[chalkKey]) groups[chalkKey] = [];
-        groups[chalkKey].push(person);
-        return groups;
-      }, {} as Record<string, Personnel[]>);
-
-      Object.keys(nonExitingByChalk).sort().forEach(chalk => {
-        const chalkPersonnel = nonExitingByChalk[chalk];
-        content += `\nChalk ${chalk}, Non-Exiting\n`;
-        content += `${'='.repeat(80)}\n`;
-        content += `#   Name                           Grade    Organization           Jump Type\n`;
-        content += `${'-'.repeat(80)}\n`;
-        chalkPersonnel.forEach((person) => {
-          const number = '////'.padEnd(4);
-          const name = `${person.lastName}, ${person.firstName} ${person.middleInitial}`.padEnd(30);
-          const grade = person.grade.padEnd(8);
-          const org = person.organization.padEnd(22);
-          const jumpType = person.jumpmasterType || person.nonJumperType || person.jumpType;
-          content += `${number}${name} ${grade} ${org} ${jumpType}\n`;
-        });
-      });
-    }
-
-    return content;
-  };
-
   const handleTextPreview = () => {
-    const content = generateDAForm1306Text();
+    const content = `DA FORM 1306\nSTATEMENT OF JUMP AND LOADING MANIFEST\n\n` +
+      `Date: ${formData.date}\n` +
+      `Drop Zone: ${formData.dropZone}\n` +
+      `Aircraft Type: ${formData.aircraftType}\n` +
+      `Parachute Type: ${formData.chuteType}\n\n` +
+      personnel.map((person, index) => {
+        const name = `${person.lastName}, ${person.firstName} ${person.middleInitial}`;
+        const grade = person.grade;
+        const org = person.organization;
+        const jumpType = person.jumpType;
+        return `${index + 1}. ${name} - ${grade} - ${org} - ${jumpType}`;
+      }).join('\n');
+
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -159,7 +83,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     }
   };
 
-  const previewContent = generateDAForm1306Text();
+  const handleDA1306ExcelExport = () => {
+    try {
+      exportDA1306Excel(personnel, formData);
+    } catch (error) {
+      console.error('Export to Excel (DA 1306) failed:', error);
+      alert('Export to Excel (DA 1306) failed.');
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -179,7 +110,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
         <div className="p-6 overflow-y-auto max-h-[60vh]">
           <pre className="text-sm text-gray-800 whitespace-pre-wrap font-mono bg-gray-50 p-4 rounded-md">
-            {previewContent}
+            {personnel.map((p, i) => `${i + 1}. ${p.lastName}, ${p.firstName} ${p.middleInitial} - ${p.grade} - ${p.organization} - ${p.jumpType}`).join('\n')}
           </pre>
         </div>
 
@@ -191,11 +122,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             Cancel
           </button>
           <button
-            onClick={() => exportToExcel(personnel, formData)}
+            onClick={handleDA1306ExcelExport}
             className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 flex items-center gap-2"
           >
             <Download className="w-4 h-4" />
-            Export Excel
+            Export DA1306 Excel
           </button>
           <button
             onClick={handleSheetsExport}
